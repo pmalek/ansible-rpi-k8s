@@ -1,0 +1,16 @@
+apiVersion: helm.cattle.io/v1
+kind: HelmChartConfig
+metadata:
+  name: traefik
+  namespace: kube-system
+spec:
+  valuesContent: |-
+    resources:
+      requests:
+        cpu: "10m"
+        memory: "32Mi"
+    readinessProbe:
+      initialDelaySeconds: 1
+      periodSeconds: 3
+    # overwrite to not use global.sendanonymoususage and global.checknewversion
+    globalArguments: []
