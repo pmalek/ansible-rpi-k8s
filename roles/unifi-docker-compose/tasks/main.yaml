@@ -1,0 +1,65 @@
+- name: Install docker (for unifi controller)
+  become: true
+  tags:
+  - docker
+  apt:
+    pkg:
+    - docker.io
+    - docker-compose
+
+- name: Add {{ user }} user to docker group
+  tags: docker
+  become: true
+  command: usermod -a -G docker {{ user }}
+
+- name: Copy docker-compose file for unifi controller
+  tags:
+  - unifi-docker-compose
+  - docker
+  copy:
+    src: "{{ role_path }}/files/docker-compose.yaml"
+    dest: $HOME/unifi-docker-compose.yaml
+    owner: "{{ user }}"
+    group: "{{ user }}"
+    mode: 0600
+
+- name: Copy unifi's MongoDB's init file
+  tags:
+  - unifi-docker-compose
+  - docker
+  copy:
+    src: "{{ role_path }}/files/init-mongo.js"
+    dest: $HOME/init-mongo.js
+    owner: "{{ user }}"
+    group: "{{ user }}"
+    mode: 0700
+
+# - name: Check if bridgecontainers network exists
+#   tags:
+#   - docker
+#   command: docker network inspect bridgecontainers
+#   ignore_errors: True
+#   register: bridge_network_exists
+
+# - name: Create bridgecontainers network if it doesn't exist
+#   tags:
+#   - docker
+#   command: docker network create bridgecontainers
+#   when: bridge_network_exists.rc == 1
+
+- name: Chown init-mongo.js
+  tags: unifi-docker-compose
+  command:
+    chdir: $HOME
+    cmd: sudo chown 999:999 init-mongo.js
+
+- name: Enable unifi controller's container
+  tags: unifi-docker-compose
+  command:
+    chdir: $HOME
+    cmd: docker-compose -f $HOME/unifi-docker-compose.yaml up -d
+  environment:
+    CF_API_TOKEN: "{{ lookup('env', 'CF_API_TOKEN') }}"
+    CF_ZONE_ID: "{{ lookup('env', 'CF_ZONE_ID') }}"
+    CF_ACCOUNT_ID: "{{ lookup('env', 'CF_ACCOUNT_ID') }}"
+    UNIFI_APEX_DOMAIN: "{{ lookup('env', 'UNIFI_APEX_DOMAIN') }}"

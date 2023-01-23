@@ -1,0 +1,32 @@
+apiVersion: helm.cattle.io/v1
+kind: HelmChartConfig
+metadata:
+  name: traefik
+  namespace: kube-system
+spec:
+  valuesContent: |-
+    resources:
+      requests:
+        cpu: "10m"
+        memory: "32Mi"
+    readinessProbe:
+      initialDelaySeconds: 1
+      periodSeconds: 3
+    # overwrite to not use global.sendanonymoususage and global.checknewversion
+    globalArguments:
+      - --global.checknewversion=false
+      - --global.sendanonymoususage=false
+    additionalArguments:
+      - --serversTransport.insecureSkipVerify=true
+    ports:
+      web:
+        redirectTo: websecure
+      websecure:
+        tls:
+          enabled: true
+
+    # Since we're running in docker we don't need this anymore.
+    # - --entryPoints.l2unifidisc.address=:1900/udp
+    #   l2unifidisc:
+    #     port: 1900
+    #     protocol: UDP

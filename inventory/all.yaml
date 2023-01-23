@@ -1,0 +1,5 @@
+all:
+  hosts:
+    rpi:
+      ansible_host: 192.168.1.61
+      ansible_user: pi

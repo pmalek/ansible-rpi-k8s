@@ -1,0 +1,145 @@
+version: '2.4'
+
+services:
+  swag:
+    image: lscr.io/linuxserver/swag:3.1.0
+    container_name: swag
+    mem_limit: 256M
+    mem_reservation: 128M
+    restart: unless-stopped
+    cap_add:
+      - NET_ADMIN
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Europe/Warsaw
+      - URL=${UNIFI_APEX_DOMAIN:?error}
+      # - STAGING=true #optional
+      - VALIDATION=dns
+      - SUBDOMAINS=unifi.local, #optional
+      - ONLY_SUBDOMAINS=true #optional
+      - DNSPLUGIN=cloudflare #optional
+
+      # https://www.linuxserver.io/blog/zero-trust-hosting-and-reverse-proxy-via-cloudflare-swag-and-authelia#initial-cloudflare-setup
+      - CF_ZONE_ID=${CF_ZONE_ID:?error}
+      - CF_ACCOUNT_ID=${CF_ACCOUNT_ID:?error}
+      - CF_API_TOKEN=${CF_API_TOKEN:?error}
+      # After updating those please also check /config/dns-conf/cloudflare.ini
+
+      # - CERTPROVIDER= #optional
+      # - PROPAGATION= #optional
+      # - EMAIL= #optional
+      # - EXTRA_DOMAINS= #optional
+
+      # https://github.com/linuxserver/docker-mods/tree/swag-auto-proxy#labels
+      - DOCKER_MODS=linuxserver/mods:universal-docker|linuxserver/mods:swag-auto-proxy
+    volumes:
+      - swag_config:/config
+      - /etc/localtime:/etc/localtime:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    ports:
+      # Ports section technically is not needed since using vlan means traffic can go trough all ports
+      # regardless of port mapping.
+      # Port mapping does not work with vlan.
+      # If you need any mapping/filtering/blacklisting/whitelisting etc. - do it on the firewall.
+      # However you can keep it commented as a placeholder for quick look-up which ports are being
+      # used by default if need be or getting rid of vlan.
+      - 443:443
+      - 80:80 #optional
+    networks:
+      dockervlan:
+        ipv4_address: 192.168.1.246
+
+  unifi-network-application:
+    image: lscr.io/linuxserver/unifi-network-application:9.0.108
+    mem_limit: 2048M
+    mem_reservation: 1024M
+    restart: unless-stopped
+    labels:
+      # https://github.com/linuxserver/docker-mods/tree/swag-auto-proxy#labels
+      swag: enable
+      swag_port: 8443
+      # swag_address: 192.168.1.245
+      swag_address: unifi-network-application
+      swag_proto: https
+      swag_url: unifi.local.${UNIFI_APEX_DOMAIN:?error}
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Europe/Warsaw
+      - MEM_LIMIT=2560 #optional
+      - MEM_STARTUP=1024 #optional
+      # The host would need to be changed when unifi-db container IP changes
+      - MONGO_HOST=192.168.1.243
+      - MONGO_USER=unifi
+      # This is what's set in the init-mongo.js. This is run locally so meh.
+      - MONGO_PASS=k7xtNGKkELUKg4xz
+      - MONGO_PORT=27017
+      - MONGO_DBNAME=unifi
+      # - MONGO_TLS= #optional
+      # - MONGO_AUTHSOURCE= #optional
+    volumes:
+      - unifi_network_application_config:/config
+      - /etc/localtime:/etc/localtime:ro
+    ports:
+      # Ports section technically is not needed since using vlan means traffic can go trough all ports
+      # regardless of port mapping.
+      # Port mapping does not work with vlan.
+      # If you need any mapping/filtering/blacklisting/whitelisting etc. - do it on the firewall.
+      # However you can keep it commented as a placeholder for quick look-up which ports are being
+      # used by default if need be or getting rid of vlan.
+      - 8443:8443
+      - 3478:3478/udp
+      - 10001:10001/udp
+      - 8080:8080
+      - 1900:1900/udp #optional
+      - 8843:8843 #optional
+      - 8880:8880 #optional
+      # - 6789:6789 # optional mobile throughput test
+      # - 5514:5514/udp # optional remote syslog port
+    networks:
+      dockervlan:
+        # this translates to inform URL of http://192.168.1.245:8080/inform,
+        # in controller's Settings: 192.168.1.245.
+        ipv4_address: 192.168.1.245
+
+  unifi-db:
+    # 4.1.13 seems to be the last version that would run on ARM older than v8.2-A.
+    # In order to update it seems that one would need Raspberry Pi 5 which has
+    # Cortex A76 which is an ARM v8.2-A CPU.
+    #
+    # WARNING: MongoDB requires ARMv8.2-A or higher, and your current system does not appear to implement any of the common features for that!
+    #   applies to all versions ≥5.0, any of 4.4 ≥4.4.19, and any of 4.2 ≥4.2.19
+    #   see https://jira.mongodb.org/browse/SERVER-71772
+    #   see https://jira.mongodb.org/browse/SERVER-55178
+    #   see also https://en.wikichip.org/wiki/arm/armv8#ARMv8_Extensions_and_Processor_Features
+    #   see also https://github.com/docker-library/mongo/issues/485#issuecomment-970864306
+    image: docker.io/mongo:4.1.13
+    container_name: unifi-db
+    mem_limit: 3072M
+    mem_reservation: 256M
+    restart: unless-stopped
+    volumes:
+      - unifi_db:/data/db
+      - ./init-mongo.js:/docker-entrypoint-initdb.d/init-mongo.js:ro
+    networks:
+      dockervlan:
+        ipv4_address: 192.168.1.243
+
+volumes:
+  unifi_config:
+  unifi_network_application_config:
+  unifi_db:
+  swag_config:
+
+networks:
+  dockervlan:
+    name: dockervlan
+    driver: macvlan
+    driver_opts:
+      parent: eth0
+    ipam:
+      config:
+        - subnet: "192.168.1.0/24"
+          ip_range: "192.168.1.244/29"
+          gateway: "192.168.1.1"
