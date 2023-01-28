@@ -1,0 +1,21 @@
+- name: Install docker (for unifi controller)
+  become: true
+  apt:
+    pkg:
+    - docker.io
+    - docker-compose
+
+- name: Copy docker-compose file for unifi controller
+  copy:
+    src: "{{ role_path }}/files/unifi-docker-compose.yaml"
+    dest: $HOME
+    owner: "{{ user }}"
+    group: "{{ user }}"
+    mode: 0600
+
+- name: Add {{ user }} user to docker group
+  become: true
+  command: usermod -a -G docker {{ user }}
+
+- name: Enable unifi controller's container
+  command: docker-compose -f $HOME/unifi-docker-compose.yaml up -d

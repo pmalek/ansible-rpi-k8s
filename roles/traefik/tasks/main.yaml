@@ -1,0 +1,9 @@
+
+- name: Copy traefik helm chart config
+  become: true
+  copy:
+    src: "{{ role_path }}/files/traefik-config.yaml"
+    dest: /var/lib/rancher/k3s/server/manifests/traefik-config.yaml
+    owner: root
+    group: root
+    mode: 0600
