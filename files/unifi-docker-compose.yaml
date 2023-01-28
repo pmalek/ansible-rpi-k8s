@@ -1,0 +1,31 @@
+version: '2.3'
+
+services:
+  unifi-controller:
+    image: lscr.io/linuxserver/unifi-controller:7.3.76
+    container_name: unifi-controller
+    mem_limit: 2048M
+    mem_reservation: 1024M
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Europe/Warsaw
+      - MEM_LIMIT=2048 #optional
+      - MEM_STARTUP=1024 #optional
+    volumes:
+      - unifi_config:/config
+      - /etc/localtime:/etc/localtime:ro
+    ports:
+      - 8443:8443
+      - 3478:3478/udp
+      - 10001:10001/udp
+      - 8080:8080
+      - 1900:1900/udp #optional
+      - 8843:8843 #optional
+      - 8880:8880 #optional
+      # - 6789:6789 # optional mobile throughput test
+      # - 5514:5514/udp # optional remote syslog por
+    restart: unless-stopped
+
+volumes:
+  unifi_config:
