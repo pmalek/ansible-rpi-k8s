@@ -34,6 +34,22 @@ unifi:
 		TAGS="docker,unifi-docker-compose" \
 		PLAYBOOK=install.yaml
 
+.PHONY: paperless
+paperless:
+	$(MAKE) _run \
+		TAGS="docker,paperless-docker-compose" \
+		PLAYBOOK=paperless.yaml
+
+.PHONY: backrest
+backrest:
+	@$(MAKE) env-is-set ENV=BWS_ACCESS_TOKEN
+	@$(MAKE) env-is-set ENV=BWS_SERVER_URL
+	@$(MAKE) env-is-set ENV=BWS_PROJECT_ID
+	bws run --project-id $(BWS_PROJECT_ID) --no-inherit-env -- \
+		$(MAKE) _run \
+		TAGS="docker,backrest-docker-compose" \
+		PLAYBOOK=backrest.yaml
+
 .PHONY: run
 run:
 	$(MAKE) _run

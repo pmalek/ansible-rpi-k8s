@@ -1,0 +1,8 @@
+- hosts: all
+  vars:
+    user: pi
+  roles:
+  - role: backrest-docker-compose
+  tags:
+  - docker
+  - backrest-docker-compose

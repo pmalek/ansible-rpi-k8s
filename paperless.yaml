@@ -1,0 +1,8 @@
+- hosts: all
+  vars:
+    user: pi
+  roles:
+  - role: paperless-docker-compose
+  tags:
+  - docker
+  - paperless-docker-compose

@@ -1,0 +1,41 @@
+- name: Install docker (for paperless)
+  become: true
+  tags:
+  - docker
+  apt:
+    pkg:
+    - docker.io
+    - docker-compose
+
+- name: Add {{ user }} user to docker group
+  tags: docker
+  become: true
+  command: usermod -a -G docker {{ user }}
+
+- name: Copy docker-compose file for paperless
+  tags:
+  - paperless-docker-compose
+  - docker
+  copy:
+    src: "{{ role_path }}/files/docker-compose.yaml"
+    dest: $HOME/paperless-docker-compose.yaml
+    owner: "{{ user }}"
+    group: "{{ user }}"
+    mode: 0600
+
+- name: Copy docker-compose env file for paperless
+  tags:
+  - paperless-docker-compose
+  - docker
+  copy:
+    src: "{{ role_path }}/files/docker-compose.env"
+    dest: $HOME/paperless-docker-compose.env
+    owner: "{{ user }}"
+    group: "{{ user }}"
+    mode: 0600
+
+- name: Enable paperless' container
+  tags: paperless-docker-compose
+  command:
+    chdir: $HOME
+    cmd: docker-compose -p paperless -f $HOME/paperless-docker-compose.yaml up -d

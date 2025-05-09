@@ -1,0 +1,44 @@
+- name: Install docker
+  become: true
+  tags:
+  - docker
+  apt:
+    pkg:
+    - docker.io
+    - docker-compose
+
+- name: Add {{ user }} user to docker group
+  tags: docker
+  become: true
+  command: usermod -a -G docker {{ user }}
+
+- name: Copy docker-compose file
+  tags:
+  - backrest-docker-compose
+  - docker
+  copy:
+    src: "{{ role_path }}/files/docker-compose.yaml"
+    dest: $HOME/backrest-docker-compose.yaml
+    owner: "{{ user }}"
+    group: "{{ user }}"
+    mode: 0600
+
+# - name: Copy docker-compose env file
+#   tags:
+#   - backrest-docker-compose
+#   - docker
+#   copy:
+#     src: "{{ role_path }}/files/docker-compose.env"
+#     dest: $HOME/backrest-docker-compose.env
+#     owner: "{{ user }}"
+#     group: "{{ user }}"
+#     mode: 0600
+
+- name: Enable backrest's container
+  tags: backrest-docker-compose
+  command:
+    chdir: $HOME
+    cmd: docker-compose -p backrest -f $HOME/backrest-docker-compose.yaml up -d
+  environment:
+    PAPERLESS_AWS_SECRET_ACCESS_KEY: "{{ lookup('env', 'PAPERLESS_AWS_SECRET_ACCESS_KEY') }}"
+    PAPERLESS_AWS_ACCESS_KEY_ID: "{{ lookup('env', 'PAPERLESS_AWS_ACCESS_KEY_ID') }}"

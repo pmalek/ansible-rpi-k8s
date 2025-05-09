@@ -1,0 +1,50 @@
+version: '3'
+
+services:
+  backrest:
+    image: garethgeorge/backrest:v1.8.1
+    restart: unless-stopped
+    hostname: backrest
+    volumes:
+      - config:/config
+      - data:/data
+      - cache:/cache
+      - tmp:/tmp
+      # Backups
+      - paperless_data:/userdata/paperless_data    # Mount local paths to backup
+      - paperless_media:/userdata/paperless_media  # Mount local paths to backup
+      # - /path/to/local/repos:/repos     # Mount local repos (optional for remote storage)
+    environment:
+      - BACKREST_DATA=/data
+      - BACKREST_CONFIG=/config/config.json
+      - XDG_CACHE_HOME=/cache
+      - TMPDIR=/tmp
+      - TZ=Europe/Warsaw
+      # Cloudflare R2 credentials to "backrest-paperless" bucket
+      - PAPERLESS_AWS_SECRET_ACCESS_KEY=${PAPERLESS_AWS_SECRET_ACCESS_KEY:?error}
+      - PAPERLESS_AWS_ACCESS_KEY_ID=${PAPERLESS_AWS_ACCESS_KEY_ID:?error}
+    ports:
+      - "9898:9898"
+
+volumes:
+  paperless_data:
+    external: true
+  paperless_media:
+    external: true
+
+  config:
+    labels:
+      dev.pmalek.local.app: backrest
+      dev.pmalek.local.volume: config
+  data:
+    labels:
+      dev.pmalek.local.app: backrest
+      dev.pmalek.local.volume: data
+  cache:
+    labels:
+      dev.pmalek.local.app: backrest
+      dev.pmalek.local.volume: cache
+  tmp:
+    labels:
+      dev.pmalek.local.app: backrest
+      dev.pmalek.local.volume: tmp
