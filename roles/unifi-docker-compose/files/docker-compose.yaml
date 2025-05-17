@@ -3,7 +3,7 @@ version: '2.4'
 services:
   swag:
     image: lscr.io/linuxserver/swag:3.1.0
-    container_name: swag
+    # container_name: swag
     mem_limit: 256M
     mem_reservation: 128M
     restart: unless-stopped
@@ -115,7 +115,7 @@ services:
     #   see also https://en.wikichip.org/wiki/arm/armv8#ARMv8_Extensions_and_Processor_Features
     #   see also https://github.com/docker-library/mongo/issues/485#issuecomment-970864306
     image: docker.io/mongo:4.1.13
-    container_name: unifi-db
+    # container_name: unifi-db
     mem_limit: 3072M
     mem_reservation: 256M
     restart: unless-stopped
